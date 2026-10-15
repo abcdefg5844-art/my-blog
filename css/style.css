@@ -254,6 +254,74 @@ main {
   color: var(--text-muted);
 }
 
+/* ===== 미니 웹앱 ===== */
+.apps {
+  margin-top: 56px;
+}
+
+.section-title {
+  margin: 0 0 16px;
+  font-size: 1.375rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.app-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.app-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+}
+
+.app-card h3 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.app-card h3 a {
+  color: var(--text);
+}
+
+.app-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.975rem;
+  line-height: 1.65;
+}
+
+.app-frame {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.app-frame iframe {
+  display: block;
+  width: 100%;
+  height: 440px;
+  border: 0;
+}
+
+.app-open {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  font-size: 0.9375rem;
+}
+
 /* ===== 글 상세 ===== */
 .back-link {
   display: inline-flex;
@@ -422,8 +490,13 @@ main {
     font-size: 2rem;
   }
 
-  .post-card {
+  .post-card,
+  .app-card {
     padding: 24px 28px;
+  }
+
+  .app-frame iframe {
+    height: 520px;
   }
 
   .post-header h1 {

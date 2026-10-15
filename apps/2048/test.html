@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2048 로직 테스트</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #ffffff;
+      color: #1f2328;
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+    }
+
+    .summary {
+      margin: 0 0 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+
+    .summary.pass {
+      background: #dcfce7;
+      color: #14532d;
+    }
+
+    .summary.fail {
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 6px 10px;
+      border: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f6f8fa;
+    }
+
+    td code {
+      font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+      font-size: 0.8125rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .ok {
+      color: #166534;
+      font-weight: 700;
+    }
+
+    .ng {
+      color: #b91c1c;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <h1>2048 로직 테스트</h1>
+  <p class="summary" id="summary" role="status">테스트 실행 중…</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">테스트</th>
+          <th scope="col">결과</th>
+          <th scope="col">기대값</th>
+          <th scope="col">실제값</th>
+        </tr>
+      </thead>
+      <tbody id="results"></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import {
+      createEmptyBoard,
+      slideLine,
+      move,
+      canMove,
+      hasWon,
+      emptyCells,
+      addRandomTile,
+      newGame
+    } from './game.js';
+
+    const results = [];
+
+    // 값 비교용 문자열(배열·객체를 JSON으로)
+    function show(value) {
+      return JSON.stringify(value);
+    }
+
+    function check(name, expected, actual) {
+      results.push({ name, expected: show(expected), actual: show(actual), pass: show(expected) === show(actual) });
+    }
+
+    function checkRun(name, expected, fn) {
+      try {
+        check(name, expected, fn());
+      } catch (e) {
+        results.push({ name, expected: show(expected), actual: '오류: ' + e.message, pass: false });
+      }
+    }
+
+    // 정해진 값들을 차례로 돌려주는 rng
+    function seq(values) {
+      let i = 0;
+      return () => values[i++ % values.length];
+    }
+
+    function countTiles(board) {
+      return board.flat().filter((v) => v !== 0).length;
+    }
+
+    // ===== slideLine =====
+    const lineCases = [
+      [[2, 2, 2, 2], [4, 4, 0, 0], 8],
+      [[2, 2, 4, 0], [4, 4, 0, 0], 4],
+      [[4, 4, 8, 8], [8, 16, 0, 0], 24],
+      [[2, 0, 0, 2], [4, 0, 0, 0], 4],
+      [[8, 0, 8, 8], [16, 8, 0, 0], 16],
+      [[2, 4, 2, 4], [2, 4, 2, 4], 0],
+      [[0, 0, 0, 0], [0, 0, 0, 0], 0],
+      [[4, 0, 0, 0], [4, 0, 0, 0], 0],
+      [[2, 2, 2, 0], [4, 2, 0, 0], 4]
+    ];
+    for (const [input, line, gained] of lineCases) {
+      checkRun('slideLine ' + show(input), { line, gained }, () => slideLine(input));
+    }
+
+    checkRun('slideLine 입력 배열을 바꾸지 않음', [2, 2, 2, 2], () => {
+      const input = [2, 2, 2, 2];
+      slideLine(input);
+      return input;
+    });
+
+    // ===== move =====
+    const sample = [
+      [2, 2, 0, 4],
+      [0, 4, 0, 4],
+      [8, 0, 8, 2],
+      [2, 0, 0, 2]
+    ];
+    const moveCases = {
+      left: {
+        board: [[4, 4, 0, 0], [8, 0, 0, 0], [16, 2, 0, 0], [4, 0, 0, 0]],
+        gained: 32,
+        moved: true
+      },
+      right: {
+        board: [[0, 0, 4, 4], [0, 0, 0, 8], [0, 0, 16, 2], [0, 0, 0, 4]],
+        gained: 32,
+        moved: true
+      },
+      up: {
+        board: [[2, 2, 8, 8], [8, 4, 0, 4], [2, 0, 0, 0], [0, 0, 0, 0]],
+        gained: 12,
+        moved: true
+      },
+      down: {
+        board: [[0, 0, 0, 0], [2, 0, 0, 0], [8, 2, 0, 8], [2, 4, 8, 4]],
+        gained: 12,
+        moved: true
+      }
+    };
+    for (const dir of Object.keys(moveCases)) {
+      checkRun('move ' + dir + ' (같은 보드)', moveCases[dir], () => {
+        const r = move(sample, dir);
+        return { board: r.board, gained: r.gained, moved: r.moved };
+      });
+    }
+
+    checkRun('move 입력 보드를 바꾸지 않음(불변)', show(sample), () => {
+      const copy = sample.map((row) => row.slice());
+      move(copy, 'left');
+      move(copy, 'down');
+      return show(copy);
+    });
+
+    const stuck = [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 2]
+    ];
+    for (const dir of ['left', 'right', 'up', 'down']) {
+      checkRun('move ' + dir + ' 변화 없음 → moved=false (체크무늬)', { moved: false, gained: 0, board: stuck }, () => {
+        const r = move(stuck, dir);
+        return { moved: r.moved, gained: r.gained, board: r.board };
+      });
+    }
+
+    const leftPacked = [
+      [2, 0, 0, 0],
+      [4, 8, 0, 0],
+      [0, 0, 0, 0],
+      [16, 0, 0, 0]
+    ];
+    checkRun('move left 이미 왼쪽에 붙어 있음 → moved=false', false, () => move(leftPacked, 'left').moved);
+    checkRun('move right 같은 보드 → moved=true', true, () => move(leftPacked, 'right').moved);
+
+    // ===== canMove =====
+    checkRun('canMove 빈 칸 있음 → true', true, () => canMove([
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 0, 4],
+      [4, 2, 4, 2]
+    ]));
+    checkRun('canMove 가득 찼지만 가로 인접 같음 → true', true, () => canMove([
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 4, 8],
+      [4, 2, 8, 2]
+    ]));
+    checkRun('canMove 가득 찼지만 세로 인접 같음 → true', true, () => canMove([
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 8],
+      [4, 2, 4, 8]
+    ]));
+    checkRun('canMove 체크무늬처럼 모두 다름 → false', false, () => canMove(stuck));
+
+    // ===== emptyCells / createEmptyBoard =====
+    checkRun('createEmptyBoard 4×4 모두 0', [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], () => createEmptyBoard());
+    checkRun('emptyCells 빈 칸 좌표', [[0, 1], [3, 3]], () => emptyCells([
+      [2, 0, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 0]
+    ]));
+
+    // ===== addRandomTile =====
+    const oneEmpty = [
+      [2, 4, 2, 4],
+      [4, 2, 0, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 2]
+    ];
+    checkRun('addRandomTile rng 0.89 → 2 (경계 0.9 미만)', 2, () => addRandomTile(oneEmpty, seq([0, 0.89]))[1][2]);
+    checkRun('addRandomTile rng 0.9 → 4 (경계 0.9 이상)', 4, () => addRandomTile(oneEmpty, seq([0, 0.9]))[1][2]);
+    checkRun('addRandomTile 0.0 → 2', 2, () => addRandomTile(oneEmpty, seq([0.5, 0]))[1][2]);
+    checkRun('addRandomTile 입력 보드를 바꾸지 않음', 0, () => {
+      addRandomTile(oneEmpty, seq([0, 0.5]));
+      return oneEmpty[1][2];
+    });
+
+    checkRun('addRandomTile 빈 칸에만 생성(여러 rng 값)', true, () => {
+      const base = [
+        [2, 0, 4, 0],
+        [0, 8, 0, 16],
+        [32, 0, 64, 0],
+        [0, 128, 0, 256]
+      ];
+      for (let i = 0; i < 100; i++) {
+        const pos = i / 100;
+        const next = addRandomTile(base, seq([pos, (i % 10) / 10]));
+        let added = 0;
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < 4; c++) {
+            if (base[r][c] !== 0 && next[r][c] !== base[r][c]) {
+              return false; // 기존 타일이 바뀜
+            }
+            if (base[r][c] === 0 && next[r][c] !== 0) {
+              if (next[r][c] !== 2 && next[r][c] !== 4) {
+                return false;
+              }
+              added += 1;
+            }
+          }
+        }
+        if (added !== 1) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    checkRun('addRandomTile rng 0.999… 에도 범위 안 칸 선택', 1, () => {
+      const next = addRandomTile(oneEmpty, seq([0.9999999, 0.1]));
+      return countTiles(next) - countTiles(oneEmpty);
+    });
+
+    checkRun('addRandomTile 빈 칸 없으면 보드 그대로', stuck, () => addRandomTile(stuck, seq([0.3, 0.3])));
+
+    // ===== newGame =====
+    checkRun('newGame 타일 정확히 2개(고정 rng)', 2, () => countTiles(newGame(seq([0.1, 0.2, 0.7, 0.95]))));
+    checkRun('newGame 타일 정확히 2개, 값은 2 또는 4(Math.random 50회)', true, () => {
+      for (let i = 0; i < 50; i++) {
+        const board = newGame();
+        const tiles = board.flat().filter((v) => v !== 0);
+        if (tiles.length !== 2 || tiles.some((v) => v !== 2 && v !== 4)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // ===== 승리 =====
+    checkRun('hasWon 1024만 있음 → false', false, () => hasWon([
+      [1024, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 2]
+    ]));
+    checkRun('hasWon 1024+1024 합쳐 2048 생성 → true', { gained: 2048, won: true }, () => {
+      const r = move([
+        [1024, 1024, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+      ], 'left');
+      return { gained: r.gained, won: hasWon(r.board) };
+    });
+    checkRun('hasWon 4096 있음 → true', true, () => hasWon([
+      [4096, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
+    ]));
+
+    // ===== 결과 표시 =====
+    const tbody = document.getElementById('results');
+    results.forEach((t, i) => {
+      const tr = document.createElement('tr');
+      const cells = [
+        String(i + 1),
+        t.name,
+        t.pass ? '통과' : '실패',
+        t.expected,
+        t.actual
+      ];
+      cells.forEach((text, k) => {
+        const td = document.createElement('td');
+        if (k === 2) {
+          td.className = t.pass ? 'ok' : 'ng';
+          td.textContent = text;
+        } else if (k >= 3) {
+          const code = document.createElement('code');
+          code.textContent = text;
+          td.appendChild(code);
+        } else {
+          td.textContent = text;
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    const passed = results.filter((t) => t.pass).length;
+    const summary = document.getElementById('summary');
+    summary.textContent = results.length + '개 중 ' + passed + '개 통과';
+    summary.classList.add(passed === results.length ? 'pass' : 'fail');
+  </script>
+</body>
+</html>

@@ -1,0 +1,579 @@
+/* ===== 테마 변수 (블로그 css/style.css 값 복사) ===== */
+:root {
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --text: #1f2328;
+  --text-muted: #59636e;
+  --accent: #2563eb;
+  --accent-soft: #eff4ff;
+  --border: #e5e7eb;
+  --code-bg: #f6f8fa;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
+
+  /* ===== 게임 전용 (라이트) ===== */
+  --board-bg: #e5e7eb;
+  --cell-bg: #f3f4f6;
+  --overlay-bg: rgba(255, 255, 255, 0.82);
+  --btn-text: #ffffff;
+
+  --tile-2: #dbe7fe;
+  --tile-2-text: #1f2328;
+  --tile-4: #b6cefb;
+  --tile-4-text: #1f2328;
+  --tile-8: #2563eb;
+  --tile-8-text: #ffffff;
+  --tile-16: #1d4ed8;
+  --tile-16-text: #ffffff;
+  --tile-32: #4338ca;
+  --tile-32-text: #ffffff;
+  --tile-64: #1e40af;
+  --tile-64-text: #ffffff;
+  --tile-128: #3730a3;
+  --tile-128-text: #ffffff;
+  --tile-256: #1e3a8a;
+  --tile-256-text: #ffffff;
+  --tile-512: #312e81;
+  --tile-512-text: #ffffff;
+  --tile-1024: #172554;
+  --tile-1024-text: #ffffff;
+  --tile-2048: #f5b301;
+  --tile-2048-text: #1f2328;
+  --tile-2048-glow: 0 0 0 2px #d99a00, 0 0 18px rgba(245, 179, 1, 0.55);
+  --tile-super: #6d28d9;
+  --tile-super-text: #ffffff;
+
+  --gutter: 16px;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #16171a;
+  --bg-elevated: #1c1e22;
+  --text: #e6e6e6;
+  --text-muted: #9aa0a6;
+  --accent: #60a5fa;
+  --accent-soft: #1b2638;
+  --border: #2d2f34;
+  --code-bg: #1f2125;
+  --shadow: none;
+
+  --board-bg: #1c1e22;
+  --cell-bg: #2d2f34;
+  --overlay-bg: rgba(22, 23, 26, 0.84);
+  --btn-text: #0b1220;
+
+  --tile-2: #22324d;
+  --tile-2-text: #e6e6e6;
+  --tile-4: #1e3a66;
+  --tile-4-text: #e6e6e6;
+  --tile-8: #1e40af;
+  --tile-8-text: #ffffff;
+  --tile-16: #1d4ed8;
+  --tile-16-text: #ffffff;
+  --tile-32: #2563eb;
+  --tile-32-text: #ffffff;
+  --tile-64: #3b82f6;
+  --tile-64-text: #0b1220;
+  --tile-128: #60a5fa;
+  --tile-128-text: #0b1220;
+  --tile-256: #7cb6fb;
+  --tile-256-text: #0b1220;
+  --tile-512: #93c5fd;
+  --tile-512-text: #0b1220;
+  --tile-1024: #bfdbfe;
+  --tile-1024-text: #0b1220;
+  --tile-2048: #fbbf24;
+  --tile-2048-text: #1f2328;
+  --tile-2048-glow: 0 0 0 2px #fcd34d, 0 0 18px rgba(251, 191, 36, 0.45);
+  --tile-super: #a78bfa;
+  --tile-super-text: #0b1220;
+  color-scheme: dark;
+}
+
+/* 자바스크립트가 꺼져 있을 때 OS 설정을 따르는 대비책 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #16171a;
+    --bg-elevated: #1c1e22;
+    --text: #e6e6e6;
+    --text-muted: #9aa0a6;
+    --accent: #60a5fa;
+    --accent-soft: #1b2638;
+    --border: #2d2f34;
+    --code-bg: #1f2125;
+    --shadow: none;
+
+    --board-bg: #1c1e22;
+    --cell-bg: #2d2f34;
+    --overlay-bg: rgba(22, 23, 26, 0.84);
+    --btn-text: #0b1220;
+
+    --tile-2: #22324d;
+    --tile-2-text: #e6e6e6;
+    --tile-4: #1e3a66;
+    --tile-4-text: #e6e6e6;
+    --tile-8: #1e40af;
+    --tile-8-text: #ffffff;
+    --tile-16: #1d4ed8;
+    --tile-16-text: #ffffff;
+    --tile-32: #2563eb;
+    --tile-32-text: #ffffff;
+    --tile-64: #3b82f6;
+    --tile-64-text: #0b1220;
+    --tile-128: #60a5fa;
+    --tile-128-text: #0b1220;
+    --tile-256: #7cb6fb;
+    --tile-256-text: #0b1220;
+    --tile-512: #93c5fd;
+    --tile-512-text: #0b1220;
+    --tile-1024: #bfdbfe;
+    --tile-1024-text: #0b1220;
+    --tile-2048: #fbbf24;
+    --tile-2048-text: #1f2328;
+    --tile-2048-glow: 0 0 0 2px #fcd34d, 0 0 18px rgba(251, 191, 36, 0.45);
+    --tile-super: #a78bfa;
+    --tile-super-text: #0b1220;
+    color-scheme: dark;
+  }
+}
+
+/* ===== 기본 ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== 레이아웃 ===== */
+/* 화면 높이를 꽉 채우는 세로 flex: 제목·버튼·안내 줄이 먼저 자리를 잡고, 보드는 남은 공간을 쓴다 */
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: calc(480px + var(--gutter) * 2);
+  height: 100vh;
+  margin: 0 auto;
+  padding: 16px var(--gutter);
+}
+
+@supports (height: 100dvh) {
+  .app {
+    height: 100dvh;
+  }
+}
+
+.top,
+.sub,
+.hint {
+  flex-shrink: 0;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.scores {
+  display: flex;
+  gap: 8px;
+}
+
+.score-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  min-height: 48px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--board-bg);
+  line-height: 1.2;
+}
+
+.score-label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.score-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 점수 +N 떠오름 */
+.score-pops {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.score-pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 50%;
+  text-align: center;
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 700;
+  animation: score-float 600ms ease-out forwards;
+}
+
+@keyframes score-float {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
+}
+
+.sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.desc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.desc strong {
+  color: var(--text);
+}
+
+.btn {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--btn-text);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text-muted);
+}
+
+.hint {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* ===== 보드 ===== */
+/* 보드 자리: 남은 세로 공간을 차지하되, 넓은 화면에서 보드 아래가 비지 않게 폭 이상으로는 커지지 않는다 */
+.board-area {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: min(480px, calc(100vw - var(--gutter) * 2));
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  container-type: size;
+}
+
+/* 보드 자리의 폭과 높이 중 작은 쪽에 맞춘 정사각형 */
+.board-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: min(100cqw, 100cqh, 480px);
+  aspect-ratio: 1;
+  container-type: inline-size;
+}
+
+.board {
+  /* 칸 간격과 타일 크기는 보드 폭에 비례 */
+  --gap: 3cqi;
+  --cell: calc((100cqi - var(--gap) * 5) / 4);
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: var(--board-bg);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.board:focus-visible {
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, var(--cell));
+  grid-template-rows: repeat(4, var(--cell));
+  gap: var(--gap);
+  padding: var(--gap);
+}
+
+.cell {
+  border-radius: 6px;
+  background: var(--cell-bg);
+}
+
+.tiles {
+  position: absolute;
+  inset: 0;
+}
+
+/* 바깥 요소는 위치(translate), 안쪽 요소는 크기 애니메이션(scale)을 맡는다 */
+.tile {
+  --r: 0;
+  --c: 0;
+  position: absolute;
+  top: var(--gap);
+  left: var(--gap);
+  width: var(--cell);
+  height: var(--cell);
+  transform: translate(
+    calc(var(--c) * (var(--cell) + var(--gap))),
+    calc(var(--r) * (var(--cell) + var(--gap)))
+  );
+  transition: transform 100ms ease-in-out;
+  z-index: 2;
+}
+
+.tile.is-leaving {
+  z-index: 1;
+}
+
+.tile.is-merged {
+  z-index: 3;
+}
+
+.board.instant .tile {
+  transition: none;
+}
+
+.tile-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  font-size: calc(var(--cell) * 0.45);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile.digits-3 .tile-inner {
+  font-size: calc(var(--cell) * 0.36);
+}
+
+.tile.digits-4 .tile-inner {
+  font-size: calc(var(--cell) * 0.29);
+}
+
+.tile.digits-5 .tile-inner {
+  font-size: calc(var(--cell) * 0.24);
+}
+
+.tile.is-new .tile-inner {
+  animation: tile-appear 150ms ease-out;
+}
+
+.tile.is-merged .tile-inner {
+  animation: tile-pop 150ms ease-in-out;
+}
+
+@keyframes tile-appear {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tile-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 타일 색 */
+.tile[data-value="2"] .tile-inner { background: var(--tile-2); color: var(--tile-2-text); }
+.tile[data-value="4"] .tile-inner { background: var(--tile-4); color: var(--tile-4-text); }
+.tile[data-value="8"] .tile-inner { background: var(--tile-8); color: var(--tile-8-text); }
+.tile[data-value="16"] .tile-inner { background: var(--tile-16); color: var(--tile-16-text); }
+.tile[data-value="32"] .tile-inner { background: var(--tile-32); color: var(--tile-32-text); }
+.tile[data-value="64"] .tile-inner { background: var(--tile-64); color: var(--tile-64-text); }
+.tile[data-value="128"] .tile-inner { background: var(--tile-128); color: var(--tile-128-text); }
+.tile[data-value="256"] .tile-inner { background: var(--tile-256); color: var(--tile-256-text); }
+.tile[data-value="512"] .tile-inner { background: var(--tile-512); color: var(--tile-512-text); }
+.tile[data-value="1024"] .tile-inner { background: var(--tile-1024); color: var(--tile-1024-text); }
+.tile[data-value="2048"] .tile-inner {
+  background: var(--tile-2048);
+  color: var(--tile-2048-text);
+  box-shadow: var(--tile-2048-glow);
+}
+.tile[data-value="super"] .tile-inner { background: var(--tile-super); color: var(--tile-super-text); }
+
+/* ===== 오버레이 (보드 영역 안에만 표시) ===== */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--overlay-bg);
+  text-align: center;
+  animation: overlay-in 200ms ease-out;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.overlay-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 9cqi, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.overlay-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ===== 낮은 화면(iframe 등): 여백을 줄이고 안내 줄을 숨겨 보드 공간 확보 ===== */
+@media (max-height: 600px) {
+  .app {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .title {
+    font-size: 1.625rem;
+  }
+
+  .board-area {
+    margin-top: 8px;
+  }
+
+  .hint {
+    display: none;
+  }
+}
+
+/* ===== 움직임 줄이기 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
