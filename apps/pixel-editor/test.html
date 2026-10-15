@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>픽셀 아트 에디터 로직 테스트</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #ffffff;
+      color: #1f2328;
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+    }
+
+    .summary {
+      margin: 0 0 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+
+    .summary.pass {
+      background: #dcfce7;
+      color: #14532d;
+    }
+
+    .summary.fail {
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 6px 10px;
+      border: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f6f8fa;
+    }
+
+    td code {
+      font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+      font-size: 0.8125rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .ok {
+      color: #166534;
+      font-weight: 700;
+    }
+
+    .ng {
+      color: #b91c1c;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <h1>픽셀 아트 에디터 로직 테스트</h1>
+  <p class="summary" id="summary" role="status">테스트 실행 중…</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">테스트</th>
+          <th scope="col">결과</th>
+          <th scope="col">기대값</th>
+          <th scope="col">실제값</th>
+        </tr>
+      </thead>
+      <tbody id="results"></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import {
+      SIZE,
+      createPixels,
+      normalizeColor,
+      setPixels,
+      cellsOnLine,
+      floodFill,
+      isEmpty,
+      createHistory,
+      pushHistory,
+      undo,
+      redo,
+      pixelsToRGBA,
+      serialize,
+      deserialize,
+      timestampName
+    } from './editor.js';
+
+    const results = [];
+
+    // 값 비교용 문자열(배열·객체를 JSON으로)
+    function show(value) {
+      if (value instanceof Uint8ClampedArray) {
+        return JSON.stringify(Array.from(value));
+      }
+      return JSON.stringify(value);
+    }
+
+    function check(name, expected, actual) {
+      results.push({ name, expected: show(expected), actual: show(actual), pass: show(expected) === show(actual) });
+    }
+
+    // 예외가 나도 실패로 기록
+    function checkRun(name, expected, fn) {
+      try {
+        check(name, expected, fn());
+      } catch (e) {
+        results.push({ name, expected: show(expected), actual: '오류: ' + e.message, pass: false });
+      }
+    }
+
+    const idx = (x, y) => y * SIZE + x;
+    const RED = '#e53935';
+    const BLUE = '#1e88e5';
+
+    // 연속한 두 칸의 x·y 차이가 모두 1 이하인지
+    function isConnected(cells) {
+      for (let i = 1; i < cells.length; i++) {
+        if (Math.abs(cells[i].x - cells[i - 1].x) > 1 || Math.abs(cells[i].y - cells[i - 1].y) > 1) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function countColor(pixels, color) {
+      return pixels.filter((v) => v === color).length;
+    }
+
+    // 테두리(사각형 외곽)를 color로 그린 그림
+    function boxOutline(x0, y0, x1, y1, color) {
+      const cells = [];
+      for (let x = x0; x <= x1; x++) {
+        cells.push({ x, y: y0 }, { x, y: y1 });
+      }
+      for (let y = y0; y <= y1; y++) {
+        cells.push({ x: x0, y }, { x: x1, y });
+      }
+      return setPixels(createPixels(), cells, color).pixels;
+    }
+
+    // ===== createPixels / isEmpty =====
+    checkRun('createPixels 길이 256, 모두 null', [256, true], () => {
+      const p = createPixels();
+      return [p.length, p.every((v) => v === null)];
+    });
+    checkRun('isEmpty 빈 그림 → true, 한 칸 칠함 → false', [true, false], () => {
+      const p = createPixels();
+      return [isEmpty(p), isEmpty(setPixels(p, [{ x: 3, y: 3 }], RED).pixels)];
+    });
+
+    // ===== normalizeColor =====
+    check('normalizeColor #ABC → #aabbcc', '#aabbcc', normalizeColor('#ABC'));
+    check('normalizeColor #FF0000 → #ff0000', '#ff0000', normalizeColor('#FF0000'));
+    check('normalizeColor red → null', null, normalizeColor('red'));
+    check('normalizeColor #12345 → null', null, normalizeColor('#12345'));
+    check("normalizeColor '' → null", null, normalizeColor(''));
+
+    // ===== setPixels =====
+    checkRun('setPixels 지정 칸만 변경', [true, RED, RED, 2], () => {
+      const r = setPixels(createPixels(), [{ x: 1, y: 0 }, { x: 15, y: 15 }], RED);
+      return [r.changed, r.pixels[idx(1, 0)], r.pixels[idx(15, 15)], countColor(r.pixels, RED)];
+    });
+    checkRun('setPixels 원본 불변', true, () => {
+      const p = createPixels();
+      const copy = p.slice();
+      setPixels(p, [{ x: 2, y: 2 }], RED);
+      return show(p) === show(copy);
+    });
+    checkRun('setPixels 범위 밖 좌표 무시', [false, true], () => {
+      const p = createPixels();
+      const r = setPixels(p, [{ x: -1, y: 0 }, { x: 16, y: 3 }, { x: 0, y: 16 }], RED);
+      return [r.changed, isEmpty(r.pixels)];
+    });
+    checkRun('setPixels 같은 색이면 changed=false, 같은 배열', [false, true], () => {
+      const p = setPixels(createPixels(), [{ x: 4, y: 4 }], RED).pixels;
+      const r = setPixels(p, [{ x: 4, y: 4 }], RED);
+      return [r.changed, r.pixels === p];
+    });
+    checkRun('setPixels null로 지우기', [true, null], () => {
+      const p = setPixels(createPixels(), [{ x: 4, y: 4 }], RED).pixels;
+      const r = setPixels(p, [{ x: 4, y: 4 }], null);
+      return [r.changed, r.pixels[idx(4, 4)]];
+    });
+
+    // ===== cellsOnLine =====
+    check('cellsOnLine 같은 점 → 1칸', [{ x: 5, y: 5 }], cellsOnLine({ x: 5, y: 5 }, { x: 5, y: 5 }));
+    check('cellsOnLine 가로 (0,2)→(3,2)', [{ x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }], cellsOnLine({ x: 0, y: 2 }, { x: 3, y: 2 }));
+    check('cellsOnLine 세로 (4,1)→(4,4)', [{ x: 4, y: 1 }, { x: 4, y: 2 }, { x: 4, y: 3 }, { x: 4, y: 4 }], cellsOnLine({ x: 4, y: 1 }, { x: 4, y: 4 }));
+    check('cellsOnLine 45° 대각선 (1,1)→(4,4)', [{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 3 }, { x: 4, y: 4 }], cellsOnLine({ x: 1, y: 1 }, { x: 4, y: 4 }));
+    checkRun('cellsOnLine 완만한 기울기 (0,0)→(10,3): 11칸, 양 끝 포함, 간격 ≤1', [11, { x: 0, y: 0 }, { x: 10, y: 3 }, true], () => {
+      const c = cellsOnLine({ x: 0, y: 0 }, { x: 10, y: 3 });
+      return [c.length, c[0], c[c.length - 1], isConnected(c)];
+    });
+    checkRun('cellsOnLine 가파른 기울기 (2,0)→(5,12): 13칸, 양 끝 포함, 간격 ≤1', [13, { x: 2, y: 0 }, { x: 5, y: 12 }, true], () => {
+      const c = cellsOnLine({ x: 2, y: 0 }, { x: 5, y: 12 });
+      return [c.length, c[0], c[c.length - 1], isConnected(c)];
+    });
+    checkRun('cellsOnLine 역방향 (10,3)→(0,0): a에서 b 순서, 간격 ≤1', [11, { x: 10, y: 3 }, { x: 0, y: 0 }, true], () => {
+      const c = cellsOnLine({ x: 10, y: 3 }, { x: 0, y: 0 });
+      return [c.length, c[0], c[c.length - 1], isConnected(c)];
+    });
+    checkRun('cellsOnLine 역방향 가로 (3,7)→(0,7)', [{ x: 3, y: 7 }, { x: 2, y: 7 }, { x: 1, y: 7 }, { x: 0, y: 7 }], () => cellsOnLine({ x: 3, y: 7 }, { x: 0, y: 7 }));
+    checkRun('cellsOnLine (0,0)→(15,15) 16칸', 16, () => cellsOnLine({ x: 0, y: 0 }, { x: 15, y: 15 }).length);
+    checkRun('cellsOnLine 모든 방향 무작위 200쌍: 양 끝 포함·간격 ≤1·중복 없음', true, () => {
+      let seed = 7;
+      const rand = () => {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        return seed % SIZE;
+      };
+      for (let k = 0; k < 200; k++) {
+        const a = { x: rand(), y: rand() };
+        const b = { x: rand(), y: rand() };
+        const c = cellsOnLine(a, b);
+        const keys = new Set(c.map((p) => p.x + ',' + p.y));
+        const expectedLen = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) + 1;
+        if (!isConnected(c) || keys.size !== c.length || c.length !== expectedLen ||
+          show(c[0]) !== show(a) || show(c[c.length - 1]) !== show(b)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // ===== floodFill =====
+    checkRun('floodFill 빈 그림 → 256칸 모두', [true, 256], () => {
+      const r = floodFill(createPixels(), 7, 7, RED);
+      return [r.changed, countColor(r.pixels, RED)];
+    });
+    checkRun('floodFill 닫힌 테두리 안쪽만 채움', [16, 20, 220], () => {
+      // (2,2)~(7,7) 테두리: 외곽 20칸, 안쪽 4×4=16칸
+      const p = boxOutline(2, 2, 7, 7, BLUE);
+      const r = floodFill(p, 4, 4, RED);
+      return [countColor(r.pixels, RED), countColor(r.pixels, BLUE), r.pixels.filter((v) => v === null).length];
+    });
+    checkRun('floodFill 대각선 틈으로 새지 않음', [1, null], () => {
+      // (1,0),(0,1),(2,1),(1,2)로 둘러싼 (1,1)만 채워진다. 대각선 (0,0)·(2,2)로 번지지 않음
+      const p = setPixels(createPixels(), [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 2 }], BLUE).pixels;
+      const r = floodFill(p, 1, 1, RED);
+      return [countColor(r.pixels, RED), r.pixels[idx(0, 0)]];
+    });
+    checkRun('floodFill 대각선으로만 이어진 같은 색 칸은 채우지 않음', [1, BLUE], () => {
+      const p = setPixels(createPixels(), [{ x: 0, y: 0 }, { x: 1, y: 1 }], BLUE).pixels;
+      const r = floodFill(p, 0, 0, RED);
+      return [countColor(r.pixels, RED), r.pixels[idx(1, 1)]];
+    });
+    checkRun('floodFill 같은 색이면 변화 없음(같은 배열)', [false, true], () => {
+      const p = setPixels(createPixels(), [{ x: 0, y: 0 }], RED).pixels;
+      const r = floodFill(p, 0, 0, RED);
+      return [r.changed, r.pixels === p];
+    });
+    checkRun('floodFill null로 채우기(지우기)', [true, 0, 256], () => {
+      const p = boxOutline(2, 2, 7, 7, BLUE);
+      const r = floodFill(p, 2, 2, null);
+      return [r.changed, countColor(r.pixels, BLUE), r.pixels.filter((v) => v === null).length];
+    });
+    checkRun('floodFill 원본 불변', true, () => {
+      const p = boxOutline(2, 2, 7, 7, BLUE);
+      const copy = p.slice();
+      floodFill(p, 4, 4, RED);
+      floodFill(p, 0, 0, RED);
+      return show(p) === show(copy);
+    });
+
+    // ===== 히스토리 =====
+    checkRun('createHistory 빈 past/future', [[], []], () => {
+      const h = createHistory();
+      return [h.past, h.future];
+    });
+    checkRun('undo → redo 왕복', [true, true, true], () => {
+      const a = createPixels();
+      const b = setPixels(a, [{ x: 0, y: 0 }], RED).pixels;
+      const h = pushHistory(createHistory(), a);
+      const u = undo(h, b);
+      const r = redo(u.history, u.pixels);
+      return [u.pixels === a, r.pixels === b, r.history.past.length === 1 && r.history.future.length === 0];
+    });
+    checkRun('새 push 후 future 비움', [1, 0], () => {
+      const a = createPixels();
+      const b = setPixels(a, [{ x: 0, y: 0 }], RED).pixels;
+      const u = undo(pushHistory(createHistory(), a), b);
+      const h2 = pushHistory(u.history, u.pixels);
+      return [u.history.future.length, h2.future.length];
+    });
+    checkRun('limit 초과 시 가장 오래된 것 삭제', [3, 'p2', 'p4'], () => {
+      let h = createHistory(3);
+      ['p0', 'p1', 'p2', 'p3', 'p4'].forEach((p) => {
+        h = pushHistory(h, p);
+      });
+      return [h.past.length, h.past[0], h.past[2]];
+    });
+    checkRun('기본 limit 100', 100, () => {
+      let h = createHistory();
+      for (let i = 0; i < 130; i++) {
+        h = pushHistory(h, i);
+      }
+      return h.past.length;
+    });
+    checkRun('빈 상태에서 undo/redo는 그대로', [true, true, true, true], () => {
+      const h = createHistory();
+      const p = createPixels();
+      const u = undo(h, p);
+      const r = redo(h, p);
+      return [u.history === h, u.pixels === p, r.history === h, r.pixels === p];
+    });
+    checkRun('pushHistory·undo 원본 기록 불변', [1, 0], () => {
+      const h = pushHistory(createHistory(), createPixels());
+      undo(h, createPixels());
+      return [h.past.length, h.future.length];
+    });
+
+    // ===== pixelsToRGBA =====
+    check('pixelsToRGBA scale 1 길이 = 16×16×4', 1024, pixelsToRGBA(createPixels(), 1).length);
+    check('pixelsToRGBA scale 16 길이 = 256×256×4', 262144, pixelsToRGBA(createPixels(), 16).length);
+    checkRun('pixelsToRGBA scale 1: (2,1) 칸 RGBA 정확값', [229, 57, 53, 255], () => {
+      const p = setPixels(createPixels(), [{ x: 2, y: 1 }], RED).pixels;
+      const d = pixelsToRGBA(p, 1);
+      const o = (1 * 16 + 2) * 4;
+      return Array.from(d.slice(o, o + 4));
+    });
+    checkRun('pixelsToRGBA null은 0,0,0,0', [0, 0, 0, 0], () => {
+      const d = pixelsToRGBA(createPixels(), 8);
+      return Array.from(d.slice(0, 4));
+    });
+    checkRun('pixelsToRGBA scale 16: (3,2) 블록 16×16 전체가 같은 색', true, () => {
+      const p = setPixels(createPixels(), [{ x: 3, y: 2 }], '#1e88e5').pixels;
+      const d = pixelsToRGBA(p, 16);
+      const w = 256;
+      for (let py = 32; py < 48; py++) {
+        for (let px = 48; px < 64; px++) {
+          const o = (py * w + px) * 4;
+          if (d[o] !== 0x1e || d[o + 1] !== 0x88 || d[o + 2] !== 0xe5 || d[o + 3] !== 255) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    checkRun('pixelsToRGBA 블록 경계: 옆 칸 색과 섞이지 않음', [[255, 0, 0, 255], [0, 0, 255, 255], [0, 0, 0, 0], [0, 0, 0, 0]], () => {
+      // (0,0) 빨강, (1,0) 파랑, scale 8 → x=7은 빨강, x=8은 파랑, (0,1) 블록 첫 줄(y=8)은 투명
+      let p = setPixels(createPixels(), [{ x: 0, y: 0 }], '#ff0000').pixels;
+      p = setPixels(p, [{ x: 1, y: 0 }], '#0000ff').pixels;
+      const d = pixelsToRGBA(p, 8);
+      const w = 128;
+      const at = (px, py) => Array.from(d.slice((py * w + px) * 4, (py * w + px) * 4 + 4));
+      return [at(7, 7), at(8, 0), at(16, 0), at(0, 8)];
+    });
+    checkRun('pixelsToRGBA 칠한 칸 수 × scale² = alpha 255 픽셀 수', 3 * 64, () => {
+      const p = setPixels(createPixels(), [{ x: 0, y: 0 }, { x: 15, y: 15 }, { x: 7, y: 9 }], '#000000').pixels;
+      const d = pixelsToRGBA(p, 8);
+      let n = 0;
+      for (let i = 3; i < d.length; i += 4) {
+        if (d[i] === 255) n++;
+      }
+      return n;
+    });
+
+    // ===== serialize / deserialize =====
+    checkRun('serialize → deserialize 정상 왕복', true, () => {
+      const pixels = setPixels(createPixels(), [{ x: 1, y: 1 }, { x: 9, y: 4 }], RED).pixels;
+      const s = { pixels, color: '#1e88e5', tool: 'fill', grid: false };
+      return show(deserialize(serialize(s))) === show(s);
+    });
+    checkRun('serialize 형식 { v: 1, ... }', [1, 256], () => {
+      const o = JSON.parse(serialize({ pixels: createPixels(), color: '#000000', tool: 'pen', grid: true }));
+      return [o.v, o.pixels.length];
+    });
+    check('deserialize 깨진 JSON → null', null, deserialize('{"v":1,'));
+    check('deserialize 길이 오류 → null', null, deserialize(JSON.stringify({ v: 1, pixels: new Array(255).fill(null), color: '#000000', tool: 'pen', grid: true })));
+    checkRun('deserialize 잘못된 색 하나 → null', null, () => {
+      const pixels = createPixels();
+      pixels[10] = 'red';
+      return deserialize(JSON.stringify({ v: 1, pixels, color: '#000000', tool: 'pen', grid: true }));
+    });
+    checkRun('deserialize 잘못된 현재 색 → null', null, () => deserialize(JSON.stringify({ v: 1, pixels: createPixels(), color: 'blue', tool: 'pen', grid: true })));
+    checkRun('deserialize 잘못된 도구 → null', null, () => deserialize(JSON.stringify({ v: 1, pixels: createPixels(), color: '#000000', tool: 'brush', grid: true })));
+    check('deserialize 빈 문자열·null 값 → null', [null, null], [deserialize(''), deserialize('null')]);
+
+    // ===== timestampName =====
+    check('timestampName 한 자리 월/일/시 0 채움', 'pixel-art-20260305-070908.png', timestampName(new Date(2026, 2, 5, 7, 9, 8)));
+    check('timestampName 두 자리 값', 'pixel-art-20261231-235959.png', timestampName(new Date(2026, 11, 31, 23, 59, 59)));
+
+    // ===== 결과 표시 =====
+    const tbody = document.getElementById('results');
+    results.forEach((t, i) => {
+      const tr = document.createElement('tr');
+      const cells = [
+        String(i + 1),
+        t.name,
+        t.pass ? '통과' : '실패',
+        t.expected,
+        t.actual
+      ];
+      cells.forEach((text, k) => {
+        const td = document.createElement('td');
+        if (k === 2) {
+          td.className = t.pass ? 'ok' : 'ng';
+          td.textContent = text;
+        } else if (k >= 3) {
+          const code = document.createElement('code');
+          code.textContent = text;
+          td.appendChild(code);
+        } else {
+          td.textContent = text;
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    const passed = results.filter((t) => t.pass).length;
+    const summary = document.getElementById('summary');
+    summary.textContent = results.length + '개 중 ' + passed + '개 통과';
+    summary.classList.add(passed === results.length ? 'pass' : 'fail');
+  </script>
+</body>
+</html>
